@@ -1,5 +1,4 @@
 import requests
-import json
 
 # 需要解析的高质量 CF 域名列表
 domains = [
@@ -9,63 +8,57 @@ domains = [
     "cf.tencentapp.cn"
 ]
 
-# 阿里云和腾讯云的 DoH (DNS over HTTPS) JSON API 接口
+# 阿里云和腾讯云的 DoH JSON API 接口
 doh_servers = [
-    "https://dns.alidns.com/resolve",  # 阿里云
-    "https://doh.pub/dns-query"        # 腾讯云
+    "https://dns.alidns.com/resolve",
+    "https://doh.pub/dns-query"
 ]
 
 def get_ips_from_doh(domain):
     ips = set()
-    headers = {
-        # 告诉 DoH 服务器我们希望返回 JSON 格式的解析结果
-        "Accept": "application/dns-json"
-    }
+    headers = {"Accept": "application/dns-json"}
+    success = False
     
+    # 轮询 DoH 服务器，只查询 A 记录 (IPv4)
     for doh_url in doh_servers:
-        params = {
-            "name": domain,
-            "type": "A"  # 仅查询 IPv4 地址
-        }
+        params = {"name": domain, "type": "A"}
         try:
-            print(f"正在通过 {doh_url} 解析 {domain}...")
-            # 设置 5 秒超时，防止脚本卡死
+            # 设置 5 秒超时，防止工作流卡死
             response = requests.get(doh_url, params=params, headers=headers, timeout=5)
-            
             if response.status_code == 200:
                 data = response.json()
-                # 检查解析结果中是否包含 Answer 字段
                 if 'Answer' in data:
                     for answer in data['Answer']:
-                        # type 1 代表 A 记录 (IPv4)
+                        # 仅提取 type 1 (IPv4) 的数据
                         if answer.get('type') == 1:
                             ips.add(answer['data'])
-            else:
-                print(f"  [-] 请求失败，状态码: {response.status_code}")
-                
-        except Exception as e:
-            print(f"  [-] 请求 {doh_url} 发生异常: {e}")
+                success = True
+                break  # 当前接口查询成功，跳出内部循环，不再请求备用接口
+        except Exception:
+            # 发生网络错误或超时，静默失败并尝试下一个备用接口
+            continue
             
+    if not success:
+        print(f"  [-] 警告: {domain} 的 IPv4 记录在所有 DoH 接口均解析失败")
+        
     return ips
 
 def main():
     all_ips = set()
-    print("=== 开始通过国内 DoH 获取亚太优化 IP ===")
+    print("=== 开始通过国内 DoH 获取亚太优化 IP (仅限 IPv4) ===")
     
     for domain in domains:
+        print(f"正在解析: {domain}...")
         domain_ips = get_ips_from_doh(domain)
         if domain_ips:
-            print(f"  [+] {domain} 解析成功，获得 {len(domain_ips)} 个 IP")
+            print(f"  [+] {domain} 解析成功，提取 {len(domain_ips)} 个 IP")
             all_ips.update(domain_ips)
-        else:
-            print(f"  [-] {domain} 未获取到 IP")
-            
-    # 将汇总去重后的 IP 写入 txt 文件
+        
     if all_ips:
         with open("ips.txt", "w", encoding="utf-8") as f:
             for ip in sorted(all_ips):
                 f.write(ip + "\n")
-        print(f"\n=== 任务完成！共提取并去重 {len(all_ips)} 个高质量 IP ===")
+        print(f"\n=== 任务完成！共提取并去重 {len(all_ips)} 个 IPv4 地址 ===")
     else:
         print("\n=== 任务失败：未获取到任何 IP ===")
 
