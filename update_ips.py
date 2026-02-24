@@ -2,10 +2,13 @@ import requests
 
 # 需要解析的高质量 CF 域名列表
 domains = [
-    "Youxuan.cf.090227.xyz",
+    "youxuan.cf.090227.xyz",
     "www.visa.cn",
     "mfa.gov.ua",
     "cf.tencentapp.cn"
+    "cf.877774.xyz"
+    "saas.sin.fan"
+    "cf.cloudflare.182682.xyz"
 ]
 
 # 阿里云和腾讯云的 DoH JSON API 接口
