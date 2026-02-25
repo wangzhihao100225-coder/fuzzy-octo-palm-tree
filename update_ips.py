@@ -9,6 +9,9 @@ domains = [
     "cf.877774.xyz"
     "saas.sin.fan"
     "cf.cloudflare.182682.xyz"
+    "store.ubi.com"
+    "cloudflare-dl.byoip.top"
+    "bestcf.030101.xyz"
 ]
 
 # 阿里云和腾讯云的 DoH JSON API 接口
